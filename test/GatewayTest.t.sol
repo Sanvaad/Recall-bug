@@ -7,31 +7,29 @@ import "../src/interfaces/IDiamond.sol";
 import "../src/structs/Subnet.sol";
 import "../src/lib/LibGateway.sol";
 
-contract GatewayDiamondTest is Test {
-    /* ///////////////////////////////////////////////////////////////////////
-     Test demonstrates the lack of validation for activeValidatorsLimit 
-    /////////////////////////////////////////////////////////////////////// */
+contract GenesisValidatorTest is Test {
+    event MembershipUpdated(Membership);
 
-    function test_ZeroActiveValidatorsLimit() public {
+    function test_DeployWithNoValidators() public {
         IDiamond.FacetCut[] memory diamondCut = new IDiamond.FacetCut[](0);
 
         SubnetID memory subnetId = SubnetID({root: 0, route: new address[](0)});
 
-        Validator[] memory genesisValidators = new Validator[](1);
-
-        genesisValidators[0] = Validator({addr: address(1), weight: 100, metadata: bytes("")});
-
         GatewayDiamond.ConstructorParams memory params = GatewayDiamond.ConstructorParams({
             bottomUpCheckPeriod: 100,
-            activeValidatorsLimit: 0, // deliberately set to which should be invalid
+            activeValidatorsLimit: 5,
             majorityPercentage: 51,
             networkName: subnetId,
-            genesisValidators: genesisValidators,
+            genesisValidators: new Validator[](0), // empty array, should be invalid
             commitSha: bytes32("test")
         });
 
-        // Deploy the contract, and it does not revert despite invalid activeValidatorsLimit
+        vm.expectEmit(true, true, true, true);
+        emit MembershipUpdated(Membership({configurationNumber: 0, validators: new Validator[](0)}));
 
-        GatewayDiamond gatewayInstance = new GatewayDiamond(diamondCut, params);
+        GatewayDiamond gateway = new GatewayDiamond(diamondCut, params);
+
+        // The contract deploys successfully with zero validators
+        // This is problematic becayse a subnet without validators cannot function
     }
 }
